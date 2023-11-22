@@ -1,6 +1,9 @@
 package br.com.senac.api.controller;
 
+import br.com.senac.api.dto.ClientesRequest;
+import br.com.senac.api.dto.ClientesResponse;
 import br.com.senac.api.entidades.Clientes;
+import br.com.senac.api.mappers.ClientesMapper;
 import br.com.senac.api.repositorio.ClientesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,18 +21,22 @@ public class ClientesController {
     private ClientesRepository clientesRepository;
     @GetMapping("/")
     @CrossOrigin
-    public ResponseEntity<List<Clientes>> carregarClientes(){
+    public ResponseEntity<List<ClientesResponse>> carregarClientes(){
         List<Clientes> retorno = clientesRepository.findAll();
-        return ResponseEntity.ok().body(retorno);
+
+        List<ClientesResponse> out = retorno.stream().map(ClientesMapper :: clientesToClientesResponse).toList();
+        return ResponseEntity.ok().body(out);
     }
 
     @PostMapping("/")
-    public ResponseEntity<Clientes> criarCliente(@RequestBody Clientes cliente){
-        Clientes retorno = clientesRepository.save(cliente);
+    public ResponseEntity<ClientesResponse> criarCliente(@RequestBody ClientesRequest cliente){
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(retorno);
+        Clientes retorno = clientesRepository.save(ClientesMapper.clientesRequestToClientes(cliente));
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(ClientesMapper.clientesToClientesResponse(retorno));
     }
 
+    @CrossOrigin
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarCliente(@PathVariable Long id){
         clientesRepository.deleteById(id);
@@ -38,7 +45,8 @@ public class ClientesController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Clientes> atualizarCliente(@PathVariable Long id, @RequestBody Clientes cliente){
+    @CrossOrigin
+    public ResponseEntity<ClientesResponse> atualizarCliente(@PathVariable Long id, @RequestBody Clientes cliente){
         Clientes retorno = clientesRepository.findById(id).map(record -> {
             record.setNome(cliente.getNome());
             record.setSobreNome(cliente.getSobreNome());
@@ -47,18 +55,24 @@ public class ClientesController {
             return clientesRepository.save(record);
         }).get();
 
-        return ResponseEntity.ok(retorno);
+        ClientesResponse out = ClientesMapper.clientesToClientesResponse(retorno);
+        return ResponseEntity.ok(out);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Clientes> carregarClientesById(@PathVariable Long id){
+    @CrossOrigin
+    public ResponseEntity<ClientesResponse> carregarClientesById(@PathVariable Long id){
         Clientes retorno = clientesRepository.findById(id).get();
-        return ResponseEntity.ok(retorno);
+
+        ClientesResponse out = ClientesMapper.clientesToClientesResponse(retorno);
+        return ResponseEntity.ok(out);
     }
 
     @GetMapping("/{nome}/buscar")
-    public ResponseEntity<List<Clientes>> carregarClientesByNome(@PathVariable String nome){
+    public ResponseEntity<List<ClientesResponse>> carregarClientesByNome(@PathVariable String nome){
         List<Clientes> retorno = clientesRepository.findByNome(nome);
-        return ResponseEntity.ok(retorno);
+
+        List<ClientesResponse> out = retorno.stream().map(ClientesMapper :: clientesToClientesResponse).toList();
+        return ResponseEntity.ok(out);
     }
 }
